@@ -1,0 +1,14 @@
+#show_options:not(:checked) ~ div#options {
+    display:none;
+  }
+
+
+#infos{
+  padding:10px;
+  background:#dedede;
+  display:none;
+}
+
+.error_info{
+  color:red;
+}

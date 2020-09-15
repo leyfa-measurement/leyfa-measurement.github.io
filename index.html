@@ -1,1 +1,97 @@
-bonjour
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="qfc-dark.css">
+  <link rel="stylesheet" href="style.css">
+ 
+
+</head>
+
+<body>
+  <div class="qfc-container">
+    <h2>Etude vers Epure</h2>
+    <label>Cette page web permet de convertir un fichier Excel étude vers un fichier épure.</label>
+    <form>
+      <label for="show">Afficher les options avancées</label>
+      <input type="checkbox" id="show_options">
+      <div id="options">
+        <div>
+            <input placeholder="Full Name" type="text" value="33" required>
+        </div>
+        <div>
+          <label>Gender</label>
+          <div>
+            <label>
+                            <input type="radio" name="set_1" checked="checked">Male
+                        </label>
+          </div>
+          <div>
+            <label>
+                            <input type="radio" name="set_1">Female
+                        </label>
+          </div>
+        </div>
+        <div>
+          <div>
+            <input type="checkbox" checked="checked">
+            <label>Do you love this form?</label>
+          </div>
+        </div>
+        <div>
+          <label>Your City (single-select)</label>
+          <select id>
+                        <option disabled selected value="--">Select Your City</option>
+                        <option value="Bangalore">Bangalore</option>
+                        <option value="Chennai">Chennai</option>
+                        <option value="Kolkata">Kolkata</option>
+                    </select>
+        </div>
+        <div>
+          <label>Favourite Foods (multi-select)</label>
+          <select multiple>
+                        <option value="Cheese">Cheese</option>
+                        <option value="Bacon">Bacon</option>
+                        <option value="Pasta">Pasta</option>
+                        <option value="Pizza">Pizza</option>
+                    </select>
+        </div>
+        <div>
+          <label>Message (textarea)</label>
+          <div>
+            <textarea placeholder="Eg. Enter your messages here"></textarea>
+          </div>
+        </div>
+        
+      </div>
+      
+      <div>
+        <label>Choisir le fichier Excel d'étude</label>
+        <div>
+          <input type="file" id="file" accept=".csv,application/vnd.ms-excel,.xlt,application/vnd.ms-excel,.xla,application/vnd.ms-excel,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xltx,application/vnd.openxmlformats-officedocument.spreadsheetml.template,.xlsm,application/vnd.ms-excel.sheet.macroEnabled.12,.xltm,application/vnd.ms-excel.template.macroEnabled.12,.xlam,application/vnd.ms-excel.addin.macroEnabled.12,.xlsb,application/vnd.ms-excel.sheet.binary.macroEnabled.12">
+        </div>
+      </div>
+      <div>
+        <button id="convert_file" type="button">Convertir</button>
+        <button id="get_info_file" type="button">Infos fichier</button>
+      </div>
+    </form>
+    <div>
+      <p id="infos">
+      </p>
+    </div>
+  </div>
+</body>
+<div style="padding-bottom:15px; font-family: 'Roboto';color:white;" align="center">
+L'utilisation de cet outil est exclusivement réservée aux employés de <a href="https://leyfa-measurement.fr/">LeyFa Measurement</a>.</div>
+<style>
+  a {
+    color :#00bcd4;
+    text-decoration: none;
+  }
+</style>
+</html>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.14.3/xlsx.full.min.js"></script>
+<script src="script.js"></script>
