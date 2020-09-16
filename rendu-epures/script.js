@@ -1,3 +1,4 @@
+
 var MAIN_SHEET_NAME="Étude";
 var FIRST_ROW_MAIN_SHEET=4;
 var SC_START_ROW=14;
@@ -5,8 +6,90 @@ var SC_H_COL=5;
 var SC_L_COL=4;
 var SC_NOM_COL=0;
 
+let ANNOTATION_SEP=" , ";
+
+
+// Informations on the Eléments tracé
+
+let r_orp_th=/orp th à b?[+-]?[0-9]+\s?\+?\s?[0-9]*[,.]?[0-9]*\s?m?/gi;
+let r_orp_th_dist=/orp th à b?[+-]?[0-9]+\s?\+?\s?([0-9]*[,.]?[0-9]*)\s?m?/gi;
+let r_orp_th_txt="ORP TH";
+
+let r_frp_th=/frp th à b?[+-]?[0-9]+\s?\+?\s?[0-9]*[,.]?[0-9]*\s?m?/gi;
+let r_frp_th_dist=/frp th à b?[+-]?[0-9]+\s?\+?\s?([0-9]*[,.]?[0-9]*)\s?m?/gi;
+let r_frp_th_txt="FRP TH";
+
+let r_orpf=/orp\s?f? à b?[+-]?[0-9]+\s?\+?\s?[0-9]*[,.]?[0-9]*\s?m?/gi;
+let r_orpf_dist=/orp\s?f? à b?[+-]?[0-9]+\s?\+?\s?([0-9]*[,.]?[0-9]*)\s?m?/gi;
+let orpf_txt="ORP TH";
+
+let r_frpf=/frp\s?f? à b?[+-]?[0-9]+\s?\+?\s?[0-9]*[,.]?[0-9]*\s?m?/gi;
+let r_frpf_dist=/frp\s?f? à b?[+-]?[0-9]+\s?\+?\s?([0-9]*[,.]?[0-9]*)\s?m?/gi;
+let frpf_txt="FRP TH";
+
+let r_orp_pr=/orp\s?pr?\s?à?\s?b[-]?[0-9]+\s?\+?\s?[0-9]*[,.]?[0-9]*\s?m?/gi;
+let r_orp_pr_dist=/orp\s?pr?\s?à?\s?b[-]?[0-9]+\s?\+?\s?([0-9]*[,.]?[0-9]*)\s?m?/gi;
+let r_orp_pr_txt="ORP PR";
+
+let r_frp_pr=/frp\s?pr?\s?à?\s?b[-]?[0-9]+\s?\+?\s?[0-9]*[,.]?[0-9]*\s?m?/gi;
+let r_frp_pr_dist=/frp\s?pr?\s?à?\s?b[-]?[0-9]+\s?\+?\s?([0-9]*[,.]?[0-9]*)\s?m?/gi;
+let frp_pr_txt="FRP PR";
+
+let r_pi=/\bpi\b à b?[+-]?[0-9]+\s?\+?\s?[0-9]*[,.]?[0-9]*\s?m?/gi;
+let r_pi_dist=/\bpi\b à b?[+-]?[0-9]+\s?\+?\s?([0-9]*[,.]?[0-9]*)\s?m?/gi;
+let pi_txt="PI";
+
+let ELT_TRACE_REGEX=[
+  {
+    "g_reg":r_orp_th,
+    "dist_reg":r_orp_th_dist,
+    "txt":r_orp_th_txt
+  },
+  {
+    "g_reg":r_frp_th,
+    "dist_reg":r_frp_th_dist,
+    "txt":r_frp_th_txt
+  },
+  {
+    "g_reg":r_orpf,
+    "dist_reg":r_orpf_dist,
+    "txt":orpf_txt
+  },
+  {
+    "g_reg":r_frpf,
+    "dist_reg":r_frpf_dist,
+    "txt":frpf_txt
+  },
+  {
+    "g_reg":r_orp_pr,
+    "dist_reg":r_orp_pr_dist,
+    "txt":r_orp_pr_txt
+  },
+  {
+    "g_reg":r_frp_pr,
+    "dist_reg":r_frp_pr_dist,
+    "txt":frp_pr_txt
+  },
+  {
+    "g_reg":r_pi,
+    "dist_reg":r_pi_dist,
+    "txt":pi_txt
+  }
+]
+
+//Informations on the Points fixes
+let r_pt_fixes=/\+ [0-9]*[.]?[0-9]+\s?m [^+]*/g;
+let r_pt_fixes_dist=/\+ ([0-9]*[.]?[0-9]+)\s?m [^+]*/g;
+let r_pt_fixes_txt=/\+ [0-9]*[.]?[0-9]+\s?m ([^+]*)/g;
+
+
+
+
+
+
+
 let COLUMNS=["Bornes", "Flèche Intiale", "Flèche proposée", "Ripage", "Dévers initial", "Dévers proposé",
-"PK", "ENT G", "ENT D", "CAT1", "CAT2", "CAT3", "CAT MA"];//, "Annotations"];
+"PK", "ENT G", "ENT D", "CAT1", "CAT2", "CAT3", "CAT MA", "Annotations"];
 
 var COLUMNS_REGEX=[{
   "name": "PK",
@@ -92,8 +175,85 @@ var submit_file = document.getElementById('convert_file');
 var get_info_file = document.getElementById('get_info_file');
 
 
-submit_file.addEventListener('click', importFile);
+submit_file.addEventListener('click', convertFile);
 get_info_file.addEventListener('click', showInfoFile);
+
+
+function returnEltsTrace(sheet_data){
+  var elt_trace_raw=sheet_data["Elements tracé"];
+  var elt_trace_parsed=Array(elt_trace_raw.length).fill("");
+
+  
+
+  for(i=0; i<elt_trace_raw.length; i++){
+    var s="";
+    ELT_TRACE_REGEX.forEach(reg =>{
+      var matches=elt_trace_raw[i].match(reg.g_reg);
+      if(matches != null){
+        matches.forEach(m =>{
+
+          reg.dist_reg.lastIndex=0;
+          var dist_res=reg.dist_reg.exec(m);
+          var dist=null;
+          if(dist_res != null){
+            dist=dist_res[1];
+          }
+          if(dist==null || dist==""){
+            dist="0";
+          }
+  
+          dist=dist.replace(",", ".");
+  
+          s+=reg.txt +" -- "+ dist + " m " + ANNOTATION_SEP +" ";
+        });
+      }
+    });
+    elt_trace_parsed[i]=s;
+
+  }
+  return elt_trace_parsed;
+}
+
+function returnPtsFixes(sheet_data){
+  var pts_fixes_raw=sheet_data["Points Fixes"];
+  var pts_fixes_parsed=Array(pts_fixes_raw.length).fill("");
+  
+
+  for(i=0; i<pts_fixes_raw.length; i++){
+    var s="";
+
+    var pt_fixes=pts_fixes_raw[i].match(r_pt_fixes);
+
+    if(pt_fixes != null){
+      pt_fixes.forEach(p =>{
+        r_pt_fixes_dist.lastIndex = 0;
+        var dist_res=r_pt_fixes_dist.exec(p);
+        var dist=null;
+        if(dist_res != null){
+          dist=dist_res[1];
+        }
+        if(dist==null || dist==""){
+          dist="0";
+        }
+        
+        //dist=dist.replace(",", "."); //Useless as of now
+
+        r_pt_fixes_txt.lastIndex=0
+        var txt_res=r_pt_fixes_txt.exec(p);
+        var txt=null;
+        if(txt_res != null){
+          txt=txt_res[1];
+        }
+        if(dist!=null){
+          s+=txt +" -- "+ dist + " m " + ANNOTATION_SEP +" ";
+        }
+      })
+    }
+
+    pts_fixes_parsed[i]=s;
+  }
+  return pts_fixes_parsed;
+}
 
 function changeTextInfos(new_text){
   infos_p.innerHTML=new_text;
@@ -122,7 +282,7 @@ function showInfoFile(evt){
   if(hasFile()){
     var f = file.files[0];
     addTextInfos(`Calcul des infos pour le fichier ${f.name}`);
-    getWorkbookFromFile(f);
+    parseEpureFromFile(f, false);
     
     
   }else{
@@ -131,7 +291,21 @@ function showInfoFile(evt){
 }
 
 
-function getWorkbookFromFile(f){
+function convertFile(evt){
+  changeTextInfos("");
+  showInfos();
+  if(hasFile()){
+    var f = file.files[0];
+    addTextInfos(`Calcul des infos pour le fichier ${f.name}`);
+    parseEpureFromFile(f, true);
+    
+    
+  }else{
+    addTextInfos(`<span class="error_info">Pas de fichier détecté.</span>`);
+  }
+}
+
+function parseEpureFromFile(f, auto_download){
   var r = new FileReader();
   r.onload = e => {
     var workbook = getWorkbookFromData(e.target.result);
@@ -139,16 +313,47 @@ function getWorkbookFromFile(f){
     var contents=to_json(workbook, [MAIN_SHEET_NAME]);
     var contents_main_sheet=removeTrailingEmptyRows(contents[MAIN_SHEET_NAME]);
 
-    var cut_sheet=parseInfoFromMainSheet(contents_main_sheet);
-    var csv_string=convertToCSV(cut_sheet);
-    console.log(csv_string)
-    download("fichier.csv", csv_string);
-    console.log(cut_sheet);
+    var sheet_data=parseInfoFromMainSheet(contents_main_sheet);
+
+    var elt_trace_parsed=returnEltsTrace(sheet_data);
+    var pts_fixes_parsed=returnPtsFixes(sheet_data);
+
+    var l_annot=Math.max(elt_trace_parsed.length, pts_fixes_parsed.length);
+
+    var annotations=Array(l_annot).fill("");
+
+    for(i=0; i<l_annot; i++){
+      var elt_trace="";
+      var pt_fixe="";
+
+      if(i<elt_trace_parsed.length && elt_trace_parsed[i] != null){
+        elt_trace=elt_trace_parsed[i];
+      }
+
+      if(i<pts_fixes_parsed.length && pts_fixes_parsed[i] != null){
+        pt_fixe=pts_fixes_parsed[i];
+      }
+
+      var s=elt_trace+pt_fixe;
+      annotations[i]=s;
+    }
+
+    sheet_data["Annotations"]=annotations;
+    console.log(sheet_data)
+
+    
+    if(auto_download){
+      var csv_string=convertToCSV(sheet_data);
+      download(`${f.name.replace(/\.[^/.]+$/, ".csv")}`, csv_string)
+    }
+    
+    //console.log(csv_string)
+    //download("fichier.csv", csv_string);
+    //console.log(cut_sheet);
   }
 
   r.readAsBinaryString(f);
 }
-
 
 function convertToCSV(obj) {
   var csv="";
@@ -192,6 +397,7 @@ function to_json(workbook, sheet_names) {
   return result;
 };
 
+
 function importFile(evt) {
   var f = file.files[0];
 
@@ -218,7 +424,6 @@ function parseInfoFromMainSheet(sheet){
   console.log("Starting to parse the columns")
   for(i=0; i<COLUMNS_REGEX.length; i++){
     var col=COLUMNS_REGEX[i];
-    console.log(col.name)
 
     var j=findColNum(cut_sheet, col.value_r1, col.value_r2);
   
@@ -228,7 +433,6 @@ function parseInfoFromMainSheet(sheet){
     }else{
       data[col.name]=getCol(cut_sheet, j).slice(2);
     }
-    console.log(col.name)
   }
   
 
@@ -256,7 +460,6 @@ function getCol(matrix, j){
   }
   return column;
 }
-
 
 
 function download(filename, text) {
