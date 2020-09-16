@@ -1,10 +1,14 @@
 
 var MAIN_SHEET_NAME="Étude";
+var IMPLANTATION_SHEET_NAME="Implantation";
 var FIRST_ROW_MAIN_SHEET=4;
-var SC_START_ROW=14;
+var SC_HEADER_ROW=0;
 var SC_H_COL=5;
 var SC_L_COL=4;
+var SC_COTE_COL=2;
 var SC_NOM_COL=0;
+
+var DISPLAY_SC_ALSO_IN_COMMENTS=true;
 
 let ANNOTATION_SEP=" , ";
 
@@ -82,9 +86,16 @@ let r_pt_fixes=/\+ [0-9]*[.]?[0-9]+\s?m [^+]*/g;
 let r_pt_fixes_dist=/\+ ([0-9]*[.]?[0-9]+)\s?m [^+]*/g;
 let r_pt_fixes_txt=/\+ [0-9]*[.]?[0-9]+\s?m ([^+]*)/g;
 
+let r_fin_quais=/\+ [0-9]*[.]?[0-9]+\s?m [^+]*FIN QUAI[^+]*/i;
+let r_debut_quais=/\+ [0-9]*[.]?[0-9]+\s?m [^+]*DEBUT QUAI[^+]*/i;
 
+let r_sc=/\+\s?[0-9]*[.]?[0-9]+\s?m\s+SC\s?[0-9]+\/[a-zA-Z0-9]+/i;
+let r_sc_pk=/\+\s?[0-9]*[.]?[0-9]+\s?m\s+SC\s?([0-9]+)\/[a-zA-Z0-9]+/i;
+let r_sc_num=/\+\s?[0-9]*[.]?[0-9]+\s?m\s+SC\s?[0-9]+\/([a-zA-Z0-9]+)/i;
 
-
+let r_only_sc=/SC\s?[0-9]+\/[a-zA-Z0-9]+/i;
+let r_only_sc_pk=/SC\s?([0-9]+)\/[a-zA-Z0-9]+/i;
+let r_only_sc_num=/SC\s?[0-9]+\/([a-zA-Z0-9]+)/i;
 
 
 
@@ -165,6 +176,26 @@ var COLUMNS_REGEX=[{
   "name": "Points Fixes",
   "value_r1": /Points fixes/,
   "value_r2": /(?:)/
+},
+{
+  "name": "Distance quai gauche",
+  "value_r1": /Distance finale quai/,
+  "value_r2": /gauche/
+},
+{
+  "name": "Distance quai droit",
+  "value_r1": /Distance finale quai/,
+  "value_r2": /droite/
+},
+{
+  "name": "Hauteur quai gauche",
+  "value_r1": /Hauteur finale quai/,
+  "value_r2": /gauche/
+},
+{
+  "name": "Hauteur quai droit",
+  "value_r1": /Hauteur finale quai/,
+  "value_r2": /droite/
 }];
 
 
@@ -214,9 +245,14 @@ function returnEltsTrace(sheet_data){
   return elt_trace_parsed;
 }
 
-function returnPtsFixes(sheet_data){
+function returnPtsFixes(sheet_data, contents_implantation_sheet){
   var pts_fixes_raw=sheet_data["Points Fixes"];
   var pts_fixes_parsed=Array(pts_fixes_raw.length).fill("");
+
+  var debut_quais_ind=[];
+  var fin_quais_ind=[];
+
+  var sc=[];
   
 
   for(i=0; i<pts_fixes_raw.length; i++){
@@ -236,23 +272,255 @@ function returnPtsFixes(sheet_data){
           dist="0";
         }
         
-        //dist=dist.replace(",", "."); //Useless as of now
+        var is_fin_quais=r_fin_quais.test(p);
+        var is_debut_quais=r_debut_quais.test(p);
+        var is_sc=r_sc.test(p);
 
-        r_pt_fixes_txt.lastIndex=0
-        var txt_res=r_pt_fixes_txt.exec(p);
-        var txt=null;
-        if(txt_res != null){
-          txt=txt_res[1];
+        if(is_debut_quais){
+          debut_quais_ind.push({"ind":i, "dist":dist});
+        } else if(is_fin_quais){
+          fin_quais_ind.push({"ind":i, "dist":dist});
+        }else if(is_sc){
+          var pk=r_sc_pk.exec(p)[1];
+          var num=r_sc_num.exec(p)[1];
+          sc.push({"ind":i,
+          "dist":dist,
+          "pk":pk,
+          "num":num
+          });
+
+        }else{
+          r_pt_fixes_txt.lastIndex=0
+          var txt_res=r_pt_fixes_txt.exec(p);
+          var txt=null;
+          if(txt_res != null){
+            txt=txt_res[1];
+          }
+          if(txt!=null){
+            s+=txt +" -- "+ dist + " m " + ANNOTATION_SEP +" ";
+          }
         }
-        if(dist!=null){
-          s+=txt +" -- "+ dist + " m " + ANNOTATION_SEP +" ";
-        }
+
+        
       })
     }
 
     pts_fixes_parsed[i]=s;
   }
+
+
+  //Now we handle the quais
+
+  if(debut_quais_ind.length!=fin_quais_ind.length){
+    addTextInfos(`<span class="error_info">Il n'y a pas le même nombre de début de quais et de fin de quais. Les quais seront ignorés. #Début de quais: ${debut_quais_ind.length}, #Fin de quais: ${fin_quais_ind.length}</span>`);
+  }else{
+    var distance_quai_gauche = sheet_data["Distance quai gauche"];
+    var distance_quai_droit = sheet_data["Distance quai droit"];
+    var hauteur_quai_gauche = sheet_data["Hauteur quai gauche"];
+    var hauteur_quai_droit = sheet_data["Hauteur quai droit"];
+
+    addTextInfos(`${debut_quais_ind.length} quai(s) repéré(s).`);
+    for(i=0; i<debut_quais_ind.length;i++){
+      if(debut_quais_ind[i].ind<=fin_quais_ind[i].ind){
+        var deb=debut_quais_ind[i];
+        var fin=fin_quais_ind[i];
+      }else{
+        var deb=fin_quais_ind[i];
+        var fin=debut_quais_ind[i];
+      }
+
+      
+
+      //Let's determine if the quais are right or left
+      var n_info_droite=0;
+      var n_info_gauche=0;
+      var n_non_null_droite=0;
+      var n_non_null_gauche=0;
+      var quais_cote="DROIT";
+       
+      for(j=deb.ind; j<=fin.ind; j++){
+        var d_q_g=distance_quai_gauche[j];
+        var d_q_d=distance_quai_droit[j];
+        var h_q_g=hauteur_quai_gauche[j];
+        var h_q_d=hauteur_quai_droit[j];
+        [d_q_g, h_q_g].forEach(e =>{
+          if(e!="" && e != null && e!=0 && e!="0"){
+            n_info_gauche++;
+          }
+
+          if(e!="" && e != null){
+            n_non_null_gauche++;
+          }
+        });
+
+        [d_q_d, h_q_d].forEach(e =>{
+          if(e!="" && e != null && e!=0 && e!="0"){
+            n_info_droite++;
+          }
+          if(e!="" && e != null){
+            n_non_null_droite++;
+          }
+        });
+      }
+
+      
+
+      if(n_info_droite==n_info_gauche){
+        if(n_non_null_droite==n_non_null_gauche){
+          addTextInfos(`<span class="error_info">L'algorithme n'a pas réussi à déterminer le côté du quai, par défaut, ce dernier sera mis à droite.</span>`);
+        }else if(n_non_null_droite>n_non_null_gauche){
+          quais_cote="DROIT";
+        }else{
+          quais_cote="GAUCHE";
+        }
+        
+      }else if(n_info_droite>n_info_gauche){
+        quais_cote="DROIT";
+      }else{
+        quais_cote="GAUCHE";
+      }
+
+
+      var h_deb="0";
+      var d_deb="0";
+      var h_fin="0";
+      var d_fin="0";
+
+      if(quais_cote=="DROIT"){
+        h_deb=hauteur_quai_droit[deb.ind];
+        d_deb=distance_quai_droit[deb.ind];
+        h_fin=hauteur_quai_droit[fin.ind];
+        d_fin=distance_quai_droit[fin.ind];
+      }else{
+        h_deb=hauteur_quai_gauche[deb.ind];
+        d_deb=distance_quai_gauche[deb.ind];
+        h_fin=hauteur_quai_gauche[fin.ind];
+        d_fin=distance_quai_gauche[fin.ind];
+      }
+
+      if(h_deb=="" || h_deb==null){
+        h_deb="0";
+      }
+
+      if(d_deb=="" || d_deb==null){
+        d_deb="0";
+      }
+
+      if(h_fin=="" || h_fin==null){
+        h_fin="0";
+      }
+
+      if(d_fin=="" || d_fin==null){
+        d_fin="0";
+      }
+
+
+      
+    
+      h_deb=Math.round(parseFloat(String(h_deb).replace(",", ".")));
+      d_deb=Math.round(parseFloat(String(d_deb).replace(",", ".")));
+      h_fin=Math.round(parseFloat(String(h_fin).replace(",", ".")));
+      d_fin=Math.round(parseFloat(String(d_fin).replace(",", ".")));
+      pts_fixes_parsed[deb.ind]+=`DEBUT QUAIS -- ${deb.dist} -- ${d_deb} -- ${h_deb} -- ${quais_cote} ${ANNOTATION_SEP} `;
+      pts_fixes_parsed[fin.ind]+=`FIN QUAIS -- ${fin.dist} -- ${d_fin} -- ${h_fin} -- ${quais_cote} ${ANNOTATION_SEP} `;
+
+      for(j=deb.ind+1; j<fin.ind; j++){
+        if(quais_cote=="DROIT"){
+          var h=hauteur_quai_droit[j];
+          var d=distance_quai_droit[j];
+        }else{
+          var h=hauteur_quai_gauche[j];
+          var d=distance_quai_gauche[j];
+        }
+
+        if(h=="" || h==null){
+          h="0";
+        }
+  
+        if(d=="" || d==null){
+          d="0";
+        }
+
+        h=Math.round(parseFloat(String(h).replace(",", ".")));
+        d=Math.round(parseFloat(String(d).replace(",", ".")));
+
+        pts_fixes_parsed[j]+=`QUAIS -- ${0} -- ${d} -- ${h} -- ${quais_cote} ${ANNOTATION_SEP} `;
+      }
+    }
+    
+  }
+
+
+  //Now we handle the SC
+  addTextInfos(`${sc.length} support(s) caténaire repéré(s).`);
+
+  if(contents_implantation_sheet!=null){
+    sc_data=extractSCImplantationData(contents_implantation_sheet);
+
+    sc.forEach(e=>{
+      sc_info=getInfoForSC(e.num, e.pk, sc_data);
+      if(sc_info==null){
+        addTextInfos(`<span class="error_info">Implantation non trouvée pour le SC${e.pk}/${e.num}.</span>`);
+      }else{
+        var l=Math.round(parseFloat(String(sc_info.l).replace(",", ".")));
+        var h=Math.round(parseFloat(String(sc_info.h).replace(",", ".")));
+        pts_fixes_parsed[e.ind]+=`Cote Implantation SC${e.pk}/${e.num} -- ${e.dist} -- ${l} -- ${h} -- ${sc_info.cote} ${ANNOTATION_SEP} `;
+
+      }
+    })
+
+    console.log(sc_data);
+  }
+
+
+
   return pts_fixes_parsed;
+}
+
+function getInfoForSC(num, pk, sc_data){
+  for(i=0; i<sc_data.length;i++){
+    if(String(sc_data[i].num)==String(num) && String(sc_data[i].pk)==String(pk)){
+      return sc_data[i];
+    }
+  }
+  return null;
+}
+
+function extractSCImplantationData(contents_implantation_sheet){
+  var implantation_data={};
+  implantation_data["nom"]=getCol(contents_implantation_sheet, SC_NOM_COL).slice(SC_HEADER_ROW+1);
+  implantation_data["h"]=getCol(contents_implantation_sheet, SC_H_COL).slice(SC_HEADER_ROW+1);
+  implantation_data["l"]=getCol(contents_implantation_sheet, SC_L_COL).slice(SC_HEADER_ROW+1);
+  implantation_data["cote"]=getCol(contents_implantation_sheet, SC_COTE_COL).slice(SC_HEADER_ROW+1);
+
+  var sc_data=[];
+
+  for(i=0; i<implantation_data.nom.length; i++){
+    if(r_only_sc.test(implantation_data.nom[i])){
+      var pk=r_only_sc_pk.exec(implantation_data.nom[i])[1];
+      var num=r_only_sc_num.exec(implantation_data.nom[i])[1];
+      var h=implantation_data.h[i];
+      var l=implantation_data.l[i];
+      var cote=implantation_data.cote[i];
+
+      if(/gauche/i.test(cote)){
+        cote="GAUCHE";
+      }else{
+        cote="DROIT";
+      }
+
+      sc_data.push({"pk":pk,
+      "num":num,
+      "h":h,
+      "l":l,
+      "cote":cote});
+    }
+
+
+  }
+
+  return sc_data;
+
 }
 
 function changeTextInfos(new_text){
@@ -307,16 +575,43 @@ function convertFile(evt){
 
 function parseEpureFromFile(f, auto_download){
   var r = new FileReader();
+  var has_implantation_sheet=true;
   r.onload = e => {
     var workbook = getWorkbookFromData(e.target.result);
     addTextInfos(`<b>Sheets dans le fichier Excel</b>: ${workbook.SheetNames}`);
-    var contents=to_json(workbook, [MAIN_SHEET_NAME]);
+
+    if(!workbook.SheetNames.includes(MAIN_SHEET_NAME)){
+      addTextInfos(`<span class="error_info">Feuille principale "${MAIN_SHEET_NAME}" non trouvée.</span>`);
+      return null
+    }
+
+    if(!workbook.SheetNames.includes(IMPLANTATION_SHEET_NAME)){
+      addTextInfos(`<span class="error_info">Feuille d'implantation "${MAIN_SHEET_NAME}" non trouvée.</span>`);
+      has_implantation_sheet=false;
+    }
+
+    var sheets_to_parse=[MAIN_SHEET_NAME];
+    if(has_implantation_sheet){
+      sheets_to_parse.push(IMPLANTATION_SHEET_NAME);
+    }
+
+    var contents=to_json(workbook, [MAIN_SHEET_NAME, IMPLANTATION_SHEET_NAME]);
+
     var contents_main_sheet=removeTrailingEmptyRows(contents[MAIN_SHEET_NAME]);
 
+    var contents_implantation_sheet;
+    
+    if(has_implantation_sheet){
+      contents_implantation_sheet=removeTrailingEmptyRows(contents[IMPLANTATION_SHEET_NAME]);
+    }
+    
+
+    console.log(contents_implantation_sheet);
     var sheet_data=parseInfoFromMainSheet(contents_main_sheet);
+    console.log(sheet_data);
 
     var elt_trace_parsed=returnEltsTrace(sheet_data);
-    var pts_fixes_parsed=returnPtsFixes(sheet_data);
+    var pts_fixes_parsed=returnPtsFixes(sheet_data, contents_implantation_sheet);
 
     var l_annot=Math.max(elt_trace_parsed.length, pts_fixes_parsed.length);
 
@@ -344,6 +639,7 @@ function parseEpureFromFile(f, auto_download){
     
     if(auto_download){
       var csv_string=convertToCSV(sheet_data);
+      csv_string="R2D1.v1 ;;;;;;;;;;;;;\ndu PK048+668 au PK049+878;;;;;;;;;;;;;"+csv_string;
       download(`${f.name.replace(/\.[^/.]+$/, ".csv")}`, csv_string)
     }
     
@@ -478,9 +774,9 @@ function download(filename, text) {
 
 function removeTrailingEmptyRows(arr){
   var i=arr.length-1;
-  while(i>0 && arr[i].length==0){
+  while(i>=0 && arr[i].length==0){
     i--;
   }
 
-  return arr.slice(0, i);
+  return arr.slice(0, i+1);
 }
