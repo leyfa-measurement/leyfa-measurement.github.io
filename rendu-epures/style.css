@@ -9,6 +9,11 @@
   display:none;
 }
 
+#autres{
+  margin-top:20px;
+  font-style:italic;
+}
+
 .error_info{
   color:red;
 }
