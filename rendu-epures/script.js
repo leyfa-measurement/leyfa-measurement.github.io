@@ -220,6 +220,8 @@ window.onload = function (){
   submit_file = document.getElementById('convert_file');
   //get_info_file = document.getElementById('get_info_file');
 
+  el_show_options = document.getElementById('show_options');
+  
   el_MAIN_SHEET_NAME=document.getElementById("MAIN_SHEET_NAME");
   el_IMPLANTATION_SHEET_NAME=document.getElementById("IMPLANTATION_SHEET_NAME");
   el_FIRST_ROW_MAIN_SHEET=document.getElementById("FIRST_ROW_MAIN_SHEET");
@@ -238,6 +240,7 @@ window.onload = function (){
   el_SC_COTE_COL.value="2";
   el_SC_NOM_COL.value="0";
 
+  el_show_options.checked=false;
 
   
   submit_file.addEventListener('click', convertFile);
@@ -265,8 +268,6 @@ function parseInfosFromForm(){
   SC_COTE_COL=Math.trunc(parseFloat(String(el_SC_COTE_COL.value).replace(",", ".")));
   SC_NOM_COL=Math.trunc(parseFloat(String(el_SC_NOM_COL.value).replace(",", ".")));
 }
-
-
 
 
 function returnEltsTrace(sheet_data){
