@@ -220,7 +220,8 @@ function initializeElements(){
   file = document.getElementById('file');
   infos_p = document.getElementById('infos');
   submit_file = document.getElementById('convert_file');
-  get_info_file = document.getElementById('get_info_file');
+  //get_info_file = document.getElementById('get_info_file');
+  
   el_MAIN_SHEET_NAME=document.getElementById("MAIN_SHEET_NAME");
   el_IMPLANTATION_SHEET_NAME=document.getElementById("IMPLANTATION_SHEET_NAME");
   el_FIRST_ROW_MAIN_SHEET=document.getElementById("FIRST_ROW_MAIN_SHEET");
@@ -238,6 +239,12 @@ function initializeElements(){
   el_SC_L_COL.value="4";
   el_SC_COTE_COL.value="2";
   el_SC_NOM_COL.value="0";
+
+
+  
+  submit_file.addEventListener('click', convertFile);
+  //get_info_file.addEventListener('click', showInfoFile);
+
 }
 
 
@@ -248,9 +255,6 @@ function initializeElements(){
 
 
 
-
-submit_file.addEventListener('click', convertFile);
-//get_info_file.addEventListener('click', showInfoFile);
 
 function parseInfosFromForm(){
   MAIN_SHEET_NAME=el_MAIN_SHEET_NAME.value;
