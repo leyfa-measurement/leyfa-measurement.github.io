@@ -1,7 +1,22 @@
 #show_options:not(:checked) ~ div#options {
     display:none;
+    
   }
 
+div#options{
+  background:#e6f8fa;
+  padding:20px;
+}
+
+div#options label{
+  margin-bottom:10px;
+  display:block;
+}
+
+div#options input{
+  margin-bottom:30px;
+  display:block;
+}
 
 #infos{
   padding:10px;
