@@ -7,6 +7,7 @@ var SC_H_COL=5;
 var SC_L_COL=4;
 var SC_COTE_COL=2;
 var SC_NOM_COL=0;
+var INCLUDE_CAT_MA=false;
 
 let ANNOTATION_SEP=" , ";
 
@@ -99,6 +100,10 @@ let r_only_sc_num=/SC\s?[0-9]+\/([a-zA-Z0-9]+)/i;
 
 let COLUMNS=["Bornes", "Flèche Intiale", "Flèche proposée", "Ripage", "Dévers initial", "Dévers proposé",
 "PK", "ENT G", "ENT D", "CAT1", "CAT2", "CAT3", "CAT MA", "Annotations"];
+
+
+let COLUMNS_NUMERIC=["Flèche Intiale", "Flèche proposée", "Ripage", "Dévers initial", "Dévers proposé",
+"PK", "ENT G", "ENT D", "CAT1", "CAT2", "CAT3", "CAT MA"];
 
 var COLUMNS_REGEX=[{
   "name": "PK",
@@ -208,6 +213,7 @@ var el_SC_H_COL;
 var el_SC_L_COL;
 var el_SC_COTE_COL;
 var el_SC_NOM_COL;
+var el_INCLUDE_CAT_MA;
 
 var file;
 var infos_p;
@@ -230,6 +236,7 @@ window.onload = function (){
   el_SC_L_COL=document.getElementById("SC_L_COL");
   el_SC_COTE_COL=document.getElementById("SC_COTE_COL");
   el_SC_NOM_COL=document.getElementById("SC_NOM_COL");
+  el_INCLUDE_CAT_MA=document.getElementById("INCLUDE_CAT_MA");
 
   el_MAIN_SHEET_NAME.value="Étude";
   el_IMPLANTATION_SHEET_NAME.value="Implantation";
@@ -239,6 +246,7 @@ window.onload = function (){
   el_SC_L_COL.value="4";
   el_SC_COTE_COL.value="2";
   el_SC_NOM_COL.value="0";
+  el_INCLUDE_CAT_MA.checked=INCLUDE_CAT_MA;
 
   el_show_options.checked=false;
 
@@ -267,6 +275,8 @@ function parseInfosFromForm(){
   SC_L_COL=Math.trunc(parseFloat(String(el_SC_L_COL.value).replace(",", ".")));
   SC_COTE_COL=Math.trunc(parseFloat(String(el_SC_COTE_COL.value).replace(",", ".")));
   SC_NOM_COL=Math.trunc(parseFloat(String(el_SC_NOM_COL.value).replace(",", ".")));
+
+  INCLUDE_CAT_MA=el_INCLUDE_CAT_MA.checked;
 }
 
 
@@ -279,7 +289,11 @@ function returnEltsTrace(sheet_data){
   for(i=0; i<elt_trace_raw.length; i++){
     var s="";
     ELT_TRACE_REGEX.forEach(reg =>{
-      var matches=elt_trace_raw[i].match(reg.g_reg);
+      var matches=null;
+      if(elt_trace_raw[i]!=null){
+        matches=elt_trace_raw[i].match(reg.g_reg);
+      }
+      
       if(matches != null){
         matches.forEach(m =>{
 
@@ -317,8 +331,11 @@ function returnPtsFixes(sheet_data, contents_implantation_sheet){
 
   for(i=0; i<pts_fixes_raw.length; i++){
     var s="";
-
-    var pt_fixes=pts_fixes_raw[i].match(r_pt_fixes);
+    var pt_fixes=null;
+    if(pts_fixes_raw[i] != null){
+      pt_fixes=pts_fixes_raw[i].match(r_pt_fixes);
+    }
+    
 
     if(pt_fixes != null){
       pt_fixes.forEach(p =>{
@@ -529,6 +546,7 @@ function returnPtsFixes(sheet_data, contents_implantation_sheet){
       }
     })
 
+    console.log("Données de support caténaires:")
     console.log(sc_data);
   }
 
@@ -667,8 +685,11 @@ function parseEpureFromFile(f, auto_download){
     }
     
 
+    console.log("Informations de la feuille d'implantation:")
     console.log(contents_implantation_sheet);
     var sheet_data=parseInfoFromMainSheet(contents_main_sheet);
+
+    console.log("Informations de la feuille principale:")
     console.log(sheet_data);
 
     var elt_trace_parsed=returnEltsTrace(sheet_data);
@@ -694,13 +715,21 @@ function parseEpureFromFile(f, auto_download){
       annotations[i]=s;
     }
 
+
+
+
     sheet_data["Annotations"]=annotations;
+
+    //We replace all "" with 0
+    cleanFinalData(sheet_data);
+
+    console.log("Informations de la feuille principale:")
     console.log(sheet_data)
 
     
     if(auto_download){
       var csv_string=convertToCSV(sheet_data);
-      csv_string="R2D1.v1 ;;;;;;;;;;;;;\ndu PK048+668 au PK049+878;;;;;;;;;;;;;"+csv_string;
+      csv_string="R2D1.v1 ;;;;;;;;;;;;;\ndu PK048+668 au PK049+878;;;;;;;;;;;;;\n"+csv_string;
       download(`${f.name.replace(/\.[^/.]+$/, ".csv")}`, csv_string)
     }
     
@@ -762,7 +791,6 @@ function importFile(evt) {
     var r = new FileReader();
     r.onload = e => {
       var contents = processExcel(e.target.result);
-      console.log(contents)
     }
 
     r.readAsBinaryString(f);
@@ -775,6 +803,7 @@ function parseInfoFromMainSheet(sheet){
   var cut_sheet=sheet.slice(FIRST_ROW_MAIN_SHEET);
   cut_sheet[0]=Array.from(cut_sheet[0], item => typeof item === 'undefined' ? "" : item);
   cut_sheet[1]=Array.from(cut_sheet[1], item => typeof item === 'undefined' ? "" : item);
+  console.log("Informations de la feuille principale:")
   console.log(cut_sheet);
   //COLUMNS_REGEX
   var data={};
@@ -840,4 +869,58 @@ function removeTrailingEmptyRows(arr){
   }
 
   return arr.slice(0, i+1);
+}
+
+function cleanFinalData(sheet_data){
+
+  //We fill the unfilled columns
+  var max_length=0;
+  COLUMNS.forEach(col=>{
+    max_length=Math.max(max_length, sheet_data[col].length);
+  })
+
+  COLUMNS.forEach(col=>{
+    for(i=sheet_data[col].length; i<max_length; i++){
+      sheet_data[col].push("");
+    }
+  })
+
+
+  //We remove all non numeric chars in numeric fields and replace empty strings with 0
+  COLUMNS_NUMERIC.forEach(col =>{
+    for(i=0; i<sheet_data[col].length; i++){
+      sheet_data[col][i]=String(sheet_data[col][i]).replace(",", ".").replace(/[^0-9.]/g, "");
+      if(sheet_data[col][i]=="" || sheet_data[col][i]=="undefined" ||  sheet_data[col][i]==null){
+        sheet_data[col][i]="0";
+      }
+    }
+    
+  });
+
+  //We remove all lines that don't have a correct Bornes
+
+  var to_remove=[];
+  
+
+  for(i=0; i<sheet_data["Bornes"].length; i++){
+    if((!/B?[0-9]+/i.test(String(sheet_data["Bornes"][i]))) || sheet_data["Bornes"][i]==null){
+      to_remove.push(i);
+    }
+  }
+  if(to_remove.length==1){
+    addTextInfos(`<span class="error_info">La ligne ${to_remove} n'a pas de borne valide et sera donc ignorée. </span>`);
+  }else if(to_remove.length>1){
+    addTextInfos(`<span class="error_info">Les lignes ${to_remove} n'ont pas de borne valide et seront donc ignorées. </span>`);
+  }
+  
+
+  for(i=to_remove.length-1; i>=0; i--){
+    Object.keys(sheet_data).forEach(col =>{
+      sheet_data[col].splice(to_remove[i], 1);
+    })
+  }
+
+  if(!INCLUDE_CAT_MA){
+    sheet_data["CAT MA"].fill("0");
+  }
 }
