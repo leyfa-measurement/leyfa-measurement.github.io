@@ -214,14 +214,12 @@ var infos_p;
 var submit_file;
 var get_info_file;
 
-document.onload = initializeElements;
-
-function initializeElements(){
+window.onload = function (){
   file = document.getElementById('file');
   infos_p = document.getElementById('infos');
   submit_file = document.getElementById('convert_file');
   //get_info_file = document.getElementById('get_info_file');
-  
+
   el_MAIN_SHEET_NAME=document.getElementById("MAIN_SHEET_NAME");
   el_IMPLANTATION_SHEET_NAME=document.getElementById("IMPLANTATION_SHEET_NAME");
   el_FIRST_ROW_MAIN_SHEET=document.getElementById("FIRST_ROW_MAIN_SHEET");
