@@ -8,8 +8,6 @@ var SC_L_COL=4;
 var SC_COTE_COL=2;
 var SC_NOM_COL=0;
 
-var DISPLAY_SC_ALSO_IN_COMMENTS=true;
-
 let ANNOTATION_SEP=" , ";
 
 
@@ -206,8 +204,45 @@ var submit_file = document.getElementById('convert_file');
 var get_info_file = document.getElementById('get_info_file');
 
 
+var el_MAIN_SHEET_NAME=document.getElementById("MAIN_SHEET_NAME");
+var el_IMPLANTATION_SHEET_NAME=document.getElementById("IMPLANTATION_SHEET_NAME");
+var el_FIRST_ROW_MAIN_SHEET=document.getElementById("FIRST_ROW_MAIN_SHEET");
+var el_SC_HEADER_ROW=document.getElementById("SC_HEADER_ROW");
+var el_SC_H_COL=document.getElementById("SC_H_COL");
+var el_SC_L_COL=document.getElementById("SC_L_COL");
+var el_SC_COTE_COL=document.getElementById("SC_COTE_COL");
+var el_SC_NOM_COL=document.getElementById("SC_NOM_COL");
+
+
+el_MAIN_SHEET_NAME.value="Étude";
+el_IMPLANTATION_SHEET_NAME.value="Implantation";
+el_FIRST_ROW_MAIN_SHEET.value="4";
+el_SC_HEADER_ROW.value="0";
+el_SC_H_COL.value="5";
+el_SC_L_COL.value="4";
+el_SC_COTE_COL.value="2";
+el_SC_NOM_COL.value="0";
+
+
+
+
+
 submit_file.addEventListener('click', convertFile);
-get_info_file.addEventListener('click', showInfoFile);
+//get_info_file.addEventListener('click', showInfoFile);
+
+function parseInfosFromForm(){
+  MAIN_SHEET_NAME=el_MAIN_SHEET_NAME.value;
+  IMPLANTATION_SHEET_NAME=el_IMPLANTATION_SHEET_NAME.value;
+
+  FIRST_ROW_MAIN_SHEET=Math.trunc(parseFloat(String(el_FIRST_ROW_MAIN_SHEET.value).replace(",", ".")));
+  SC_HEADER_ROW=Math.trunc(parseFloat(String(el_SC_HEADER_ROW.value).replace(",", ".")));
+  SC_H_COL=Math.trunc(parseFloat(String(el_SC_H_COL.value).replace(",", ".")));
+  SC_L_COL=Math.trunc(parseFloat(String(el_SC_L_COL.value).replace(",", ".")));
+  SC_COTE_COL=Math.trunc(parseFloat(String(el_SC_COTE_COL.value).replace(",", ".")));
+  SC_NOM_COL=Math.trunc(parseFloat(String(el_SC_NOM_COL.value).replace(",", ".")));
+}
+
+
 
 
 function returnEltsTrace(sheet_data){
@@ -560,6 +595,7 @@ function showInfoFile(evt){
 
 
 function convertFile(evt){
+  parseInfosFromForm();
   changeTextInfos("");
   showInfos();
   if(hasFile()){

@@ -12,3 +12,7 @@
 .error_info{
   color:red;
 }
+
+label{
+  font-weight: bold;
+}

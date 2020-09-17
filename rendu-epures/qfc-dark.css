@@ -186,7 +186,8 @@ h6 {
 }
 
 .qfc-container label {
-    font-weight: 400;
+    font-weight: bold;
+    margin-bottom:10px;
 }
 
 .qfc-container input[type="checkbox"]:focus,
