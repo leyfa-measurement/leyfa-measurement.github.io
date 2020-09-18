@@ -729,7 +729,17 @@ function parseEpureFromFile(f, auto_download){
     
     if(auto_download){
       var csv_string=convertToCSV(sheet_data);
-      csv_string="R2D1.v1 ;;;;;;;;;;;;;\ndu PK048+668 au PK049+878;;;;;;;;;;;;;\n"+csv_string;
+
+      var max_pk=parseInt(sheet_data["PK"][sheet_data["PK"].length - 1]);
+      var min_pk=parseInt(sheet_data["PK"][0]);
+
+      var s_max_pk=max_pk.toString().padStart(6, "0");
+      var s_min_pk=min_pk.toString().padStart(6, "0");
+
+      s_max_pk=s_max_pk.substr(0,3)+"+"+s_max_pk.substr(3);
+      s_min_pk=s_min_pk.substr(0,3)+"+"+s_min_pk.substr(3)
+
+      csv_string=`R2D1.v1 ;;;;;;;;;;;;;\ndu PK${s_min_pk} au PK${s_max_pk};;;;;;;;;;;;;\n`+csv_string;
       download(`${f.name.replace(/\.[^/.]+$/, ".csv")}`, csv_string)
     }
     
