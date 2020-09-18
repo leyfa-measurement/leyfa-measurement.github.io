@@ -665,7 +665,7 @@ function parseEpureFromFile(f, auto_download){
     }
 
     if(!workbook.SheetNames.includes(IMPLANTATION_SHEET_NAME)){
-      addTextInfos(`<span class="error_info">Feuille d'implantation "${MAIN_SHEET_NAME}" non trouvée.</span>`);
+      addTextInfos(`<span class="error_info">Feuille d'implantation "${IMPLANTATION_SHEET_NAME}" non trouvée.</span>`);
       has_implantation_sheet=false;
     }
 
